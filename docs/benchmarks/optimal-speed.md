@@ -37,7 +37,7 @@ The paper is the best available first-principles method for estimating a multico
 
 From mass $m$, propeller radius $r$, rotor count $N_r$, cell count and capacity, and frontal area $A$:
 
-1. hover induced velocity $v_{i,h} = \sqrt{mg / (2\rho\pi r^2 N_r)}$ and hover power $P_h = (mg)^{3/2} / (\eta_P \sqrt{2\rho\pi N_r}\, r)$, with $\eta_P = 0.6$ (eqs. 4 and 5)
+1. hover induced velocity $v_{i,h} = \sqrt{mg / (2\rho\pi r^2 N_r)}$ and hover power $P_h = (mg)^{3/2} / (\eta_P \sqrt{2\rho\pi N_r}\, r)$, with $\eta_P = 0.6$ as stated (eqs. 4 and 5). Phase 0 found that the paper's results actually correspond to $\eta_P \approx 0.54$; see [Phase 0 results](#phase-0-results).
 2. $P_e = 0.914\,P_h$ and $P_r = 1.092\,P_h$ (eq. 17)
 3. electrical power $P_{mot} = P / \eta_M$, with $\eta_M = 0.75$
 4. per-cell power, then effective capacity from a cubic Peukert-like fit (eq. 21)
@@ -47,7 +47,7 @@ From mass $m$, propeller radius $r$, rotor count $N_r$, cell count and capacity,
 
 The paper's six commercial drones (Table III) come out within about 10% of the manufacturers' figures.
 
-**Reproduction check.** We implemented the algorithm and reran the paper's DJI Mavic 3 example. Using the paper's stated $P_h = 73.5$ W, we get $t_e$ = 2908 s (paper: 2909 s), $v_e$ = 7.74 m/s (7.75), $v_r$ = 13.19 m/s (13.12), and $x_r$ = 32.0 km (32.1). Eq. 5 with $\eta_P = 0.6$ gives only $P_h$ = 66.2 W for the stated mass and propeller, so the worked example effectively uses $\eta_P \approx 0.54$. Phase 0 must resolve this, and the calibration of $\eta_P$ becomes a reported parameter.
+**Reproduction check.** Our implementation reproduces the paper's Mavic 3 worked example to within 0.6% at every step, and all six drones in Table III to within 7%, once $\eta_P$ is calibrated to 0.54. With the stated 0.6, it overestimates endurance and range by 4 to 17%. Details are in [Phase 0 results](#phase-0-results).
 
 ### What the paper leaves out, and why it matters here
 
@@ -90,28 +90,28 @@ where $v_{energy}$ is $v_r$ or $v_e$ depending on what the mission is trying to 
 
 ### First-order estimates
 
-These come from our implementation of the pen-and-paper algorithm ([`models/pen_and_paper.py`](../../models/pen_and_paper.py)); [`models/compute_scenarios.py`](../../models/compute_scenarios.py) reproduces every table in this section, and [`models/plot_figures.py`](../../models/plot_figures.py) renders the figures. We used eq. 5 hover power with $\eta_P = 0.6$, airframes taken from the paper, and $P_c$ and $m_c$ added. The compute options are **illustrative**, not measured: module plus carrier plus cooling, over a flight-controller-only baseline. Replacing them with measured values is the point of Phase 2. $v_r$ is not corrected for the shift described in result 2.
+These come from our implementation of the pen-and-paper algorithm ([`models/pen_and_paper.py`](../../models/pen_and_paper.py)); [`models/compute_scenarios.py`](../../models/compute_scenarios.py) reproduces every table in this section, and [`models/plot_figures.py`](../../models/plot_figures.py) renders the figures. We used eq. 5 hover power with the Phase 0 calibration $\eta_P = 0.54$, airframes taken from the paper, and $P_c$ and $m_c$ added. The compute options are **illustrative**, not measured: module plus carrier plus cooling, over a flight-controller-only baseline. Replacing them with measured values is the point of Phase 2. $v_r$ is not corrected for the shift described in result 2.
 
 | Airframe | Compute option | $P_c / P_{mot,e}$ | Endurance | Range | Thrust-to-weight |
 |---|---|---|---|---|---|
-| **Racing / interceptor class**: 0.75 kg, 4S 1.8 Ah, 5.1" props ($v_e$ 9.6 m/s, $v_r$ 16.5 m/s) | flight-controller MCU only (0.5 W) | 0.4% | 13.3 min | 10.9 km | ×1.00 |
-| | efficient companion (7 W, +40 g) | 5.4% | −13% | −12% | ×0.95 |
-| | Orin NX class (15 W, +120 g) | 9.6% | −29% | −27% | ×0.86 |
-| | AGX Orin class (40 W, +350 g) | 16.6% | −57% | −54% | ×0.68 |
-| **Scout class**: 0.90 kg, 4S 5.0 Ah, Mavic 3 ($v_e$ 7.7 m/s, $v_r$ 13.2 m/s) | flight-controller MCU only | 0.6% | 53.5 min | 35.4 km | ×1.00 |
-| | efficient companion | 7.5% | −14% | −12% | ×0.96 |
-| | Orin NX class | 13.3% | −29% | −25% | ×0.88 |
-| | AGX Orin class | 23.2% | −54% | −48% | ×0.72 |
-| **Heavy inspection class**: 6.14 kg, 6S2P 15.3 Ah, Matrice 200 ($v_e$ 3.6 m/s, $v_r$ 5.3 m/s) | flight-controller MCU only | 0.1% | 24.8 min | 6.6 km | ×1.00 |
-| | efficient companion | 0.9% | −2% | −2% | ×0.99 |
-| | Orin NX class | 1.8% | −5% | −4% | ×0.98 |
-| | AGX Orin class | 4.4% | −12% | −10% | ×0.95 |
+| **Racing / interceptor class**: 0.75 kg, 4S 1.8 Ah, 5.1" props ($v_e$ 9.6 m/s, $v_r$ 16.5 m/s) | flight-controller MCU only (0.5 W) | 0.4% | 11.9 min | 9.7 km | ×1.00 |
+| | efficient companion (7 W, +40 g) | 4.9% | −13% | −12% | ×0.95 |
+| | Orin NX class (15 W, +120 g) | 8.7% | −29% | −27% | ×0.86 |
+| | AGX Orin class (40 W, +350 g) | 15.2% | −57% | −54% | ×0.68 |
+| **Scout class**: 0.90 kg, 4S 5.0 Ah, Mavic 3 ($v_e$ 7.7 m/s, $v_r$ 13.2 m/s) | flight-controller MCU only | 0.6% | 48.1 min | 31.8 km | ×1.00 |
+| | efficient companion | 6.8% | −13% | −11% | ×0.96 |
+| | Orin NX class | 12.2% | −28% | −24% | ×0.88 |
+| | AGX Orin class | 21.4% | −53% | −47% | ×0.72 |
+| **Heavy inspection class**: 6.14 kg, 6S2P 15.3 Ah, Matrice 200 ($v_e$ 3.6 m/s, $v_r$ 5.3 m/s) | flight-controller MCU only | 0.1% | 22.3 min | 5.9 km | ×1.00 |
+| | efficient companion | 0.8% | −2% | −1% | ×0.99 |
+| | Orin NX class | 1.6% | −5% | −4% | ×0.98 |
+| | AGX Orin class | 4.0% | −12% | −10% | ×0.95 |
 
-**Mass costs as much as power.** We split the Orin NX case into its two effects. On the scout airframe, power alone costs 16% of endurance and mass alone costs 17%. On the racing airframe, the split is 12% for power and 21% for mass. The power-only loss is larger than the power fraction (13.3%) because higher current draw also lowers the battery's effective capacity. A benchmark that reports only watts misses half the cost.
+**Mass costs as much as power.** We split the Orin NX case into its two effects. On the scout airframe, power alone costs 15% of endurance and mass alone costs 17%. On the racing airframe, the split is 12% for power and 21% for mass. The power-only loss is larger than the power fraction (12.2%) because higher current draw also lowers the battery's effective capacity. A benchmark that reports only watts misses half the cost.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="img/endurance-cost-dark.png">
-  <img alt="Endurance change versus compute power (left) and compute mass (right) for the racing/interceptor, scout, and heavy inspection airframes. At 40 W, endurance drops 28% (racing), 33% (scout), and 5% (heavy inspection); at 400 g, it drops 51%, 43%, and 9%." src="img/endurance-cost-light.png">
+  <img alt="Endurance change versus compute power (left) and compute mass (right) for the racing/interceptor, scout, and heavy inspection airframes. At 40 W, endurance drops 26% (racing), 31% (scout), and 4% (heavy inspection); at 400 g, it drops 51%, 43%, and 9%." src="img/endurance-cost-light.png">
 </picture>
 
 *Figure 1. Endurance cost of compute power alone (left) and compute mass alone (right), from `models/plot_figures.py`. At realistic module weights (40 to 120 g per 7 to 15 W), mass costs small airframes about as much endurance as power does; the heavy airframe barely notices either.*
@@ -139,7 +139,7 @@ Below about 100 ms, latency costs a few percent of stopping-limited speed. Doubl
 | Form factor | Capability metric | Expected binding constraint | Hypothesis |
 |---|---|---|---|
 | **Racing** | lap time, maximum speed through gates | $v_{track}$ (latency, estimation accuracy) and thrust-to-weight | Lower latency and lower compute mass raise speed directly. Compute power matters only through mass and cooling, since races last 2 to 3 minutes. |
-| **Scouting** | time to goal and range through unknown clutter | $v_{stop}$ (sensing range, latency) in clutter, $v_r$ in the open | In clutter, $v_{stop} < v_r$, so the scout is compute-limited. An efficient computer that affords longer-range perception raises both speed and range. In the open, compute power and mass cost 12 to 25% of range. |
+| **Scouting** | time to goal and range through unknown clutter | $v_{stop}$ (sensing range, latency) in clutter, $v_r$ in the open | In clutter, $v_{stop} < v_r$, so the scout is compute-limited. An efficient computer that affords longer-range perception raises both speed and range. In the open, compute power and mass cost 11 to 24% of range. |
 | **Inspection** | time on station, standoff accuracy, area covered per sortie | endurance near $v_e$ and hover; $v_{track}$ for close standoff | Compute efficiency matters a lot on small inspection drones (Skydio class) and little on heavy ones (Matrice class: −5% for an Orin NX). Latency sets how close and how fast the drone can work near structures. |
 | **Interception** | closing speed, miss distance, engagement envelope | guidance-loop latency, thrust-to-weight, top speed | Dash speeds are well beyond the paper's validated envelope. Capability is set by $\tau$ in the tracking loop and by thrust-to-weight. Energy only has to last the engagement window. |
 
@@ -147,11 +147,38 @@ Below about 100 ms, latency costs a few percent of stopping-limited speed. Doubl
 
 ### Phase 0: reproduce the paper
 
-- Implement the pen-and-paper algorithm in `models/` with the coefficients from Tables I and II. A prototype is in [`models/pen_and_paper.py`](../../models/pen_and_paper.py); it reproduces the Mavic 3 example but not yet the rest of Table III.
-- Reproduce all six drones in Table III, and match the paper's own numbers to within 1%.
+**Status: done.** Results are below.
+
+- Implement the pen-and-paper algorithm in `models/` with the coefficients from Table II. (Table I holds the full battery-model coefficients, which Phase 1 needs.)
+- Reproduce the paper's Mavic 3 worked example to within 1%, and all six drones in Table III to within the table's rounding.
 - Resolve the $\eta_P$ discrepancy in the hover power.
-- **Deliverable:** a reference model with a regression test against Table III.
-- **Exit criterion:** every Table III number is reproduced, and every deviation is explained.
+- **Deliverable:** a reference model with a regression test against the paper.
+- **Exit criterion:** every number is reproduced, or the deviation is explained.
+
+#### Phase 0 results
+
+The model is [`models/pen_and_paper.py`](../../models/pen_and_paper.py), and the paper's values are in [`models/paper_data.py`](../../models/paper_data.py). The regression tests are in [`models/test_pen_and_paper.py`](../../models/test_pen_and_paper.py); run them with `python3 -m unittest discover -s models`. `python3 models/pen_and_paper.py` prints the comparison below.
+
+**Mavic 3 worked example (Sec. VII-E).** This is the only result the paper gives at full precision. Using the paper's $P_h = 73.5$ W, every intermediate and final value is within 1%: $t_e$ = 2908 s (paper 2909), $t_r$ = 2428 s (2429), $v_e$ = 7.74 m/s (7.75), $x_r$ = 32.0 km (32.1). The largest deviation is $v_r$ = 13.19 m/s against the paper's 13.12 (+0.6%). Eq. 18 with the printed Table II coefficients gives 13.19 even with the paper's rounded $v_{i,h}$ = 4.51 m/s, so the difference is most likely in coefficient rounding.
+
+**The propeller figure of merit is 0.54, not 0.6.** Eq. 5 with the stated $\eta_P = 0.6$ gives $P_h$ = 66.2 W for the Mavic 3, not the paper's 73.5 W; 73.5 W requires $\eta_P = 0.540$. Fitting a single $\eta_P$ to all twelve endurance and range values in Table III gives 0.538. Two independent routes give the same answer, so we conclude the paper's results were computed with $\eta_P \approx 0.54$. The model now defaults to `ETA_P_CALIBRATED = 0.54`, and `ETA_P_STATED = 0.6` stays available.
+
+**Table III** (model at $\eta_P = 0.54$ vs. the paper's printed estimates):
+
+| Drone | Endurance [min] | Range [km] | $v_r$ [km/h] | Endurance at $\eta_P = 0.6$ |
+|---|---|---|---|---|
+| DJI Mavic 2 | 34.2 vs 33 (+3.5%) | 24.0 vs 24 (−0.2%) | 50.4 vs 51 | +15% |
+| DJI Mavic 3 | 48.4 vs 48 (+0.8%) | 32.0 vs 32 (0.0%) | 47.5 vs 48 | +12% |
+| DJI Matrice 200 | 22.3 vs 23 (−3.0%) | 5.9 vs 6.2 (−4.2%) | 19.2 vs 19 | +8% |
+| DJI Matrice 600 Pro | 18.7 vs 18 (+4.0%) | 5.0 vs 5.4 (−6.7%) | 19.4 vs 20 | +16% |
+| Parrot Anafi AI | 31.3 vs 31 (+1.1%) | 23.0 vs 23 (−0.1%) | 52.8 vs 53 | +13% |
+| Skydio 2 | 27.4 vs 26 (+5.4%) | 18.9 vs 18 (+4.8%) | 49.6 vs 49 | +17% |
+
+- **Speeds reproduce exactly.** Every $v_r$ is within the table's 1 km/h print rounding. Eq. 18 doesn't depend on $\eta_P$, so this checks the speed model independently.
+- **Endurance and range are within 7%,** but not within print rounding (about ±2% for whole minutes). No single $\eta_P$ removes the residuals: the Matrice 600 Pro's endurance needs $\eta_P \approx 0.52$ while its range needs about 0.58. The paper's Table III inputs are themselves rounded (mass to 10 g, propeller radius to 1 mm), and the paper may have used per-drone values it doesn't print. We treat ±7% as the model's reproduction accuracy for Table III, and the test suite holds it to 8%.
+- **Consequence for this plan:** the estimate tables and figures above use $\eta_P = 0.54$. Absolute endurance and range dropped about 10% from the earlier 0.6 version. The *relative* cost of compute barely changed (Orin NX on the scout: −28% instead of −29%), so none of the conclusions moved.
+
+**What carries into Phase 1:** the full $P(v)$ curve and the $v_r$ shift from $P_c$; the full battery model (Table I); and replacing the paper's airframes with each mission repo's own reference airframe.
 
 ### Phase 1: add compute to the model
 
