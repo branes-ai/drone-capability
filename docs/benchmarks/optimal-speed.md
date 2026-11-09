@@ -1,7 +1,7 @@
 # Benchmark plan: optimal flight speed and the cost of compute
 
 **Status:** proposed
-**Source paper:** L. Bauersfeld and D. Scaramuzza, *Range, Endurance, and Optimal Speed Estimates for Multicopters*, IEEE Robotics and Automation Letters, 2022 ([arXiv:2109.04741](https://arxiv.org/abs/2109.04741)). A local copy is in `research/`.
+**Source paper:** L. Bauersfeld and D. Scaramuzza, *Range, Endurance, and Optimal Speed Estimates for Multicopters*, IEEE Robotics and Automation Letters, 2022 ([arXiv:2109.04741](https://arxiv.org/abs/2109.04741)).
 
 ## The question
 
@@ -90,7 +90,7 @@ where $v_{energy}$ is $v_r$ or $v_e$ depending on what the mission is trying to 
 
 ### First-order estimates
 
-These come from our implementation of the pen-and-paper algorithm ([`models/pen_and_paper.py`](../../models/pen_and_paper.py)); [`models/compute_scenarios.py`](../../models/compute_scenarios.py) reproduces every table in this section. We used eq. 5 hover power with $\eta_P = 0.6$, airframes taken from the paper, and $P_c$ and $m_c$ added. The compute options are **illustrative**, not measured: module plus carrier plus cooling, over a flight-controller-only baseline. Replacing them with measured values is the point of Phase 2. $v_r$ is not corrected for the shift described in result 2.
+These come from our implementation of the pen-and-paper algorithm ([`models/pen_and_paper.py`](../../models/pen_and_paper.py)); [`models/compute_scenarios.py`](../../models/compute_scenarios.py) reproduces every table in this section, and [`models/plot_figures.py`](../../models/plot_figures.py) renders the figures. We used eq. 5 hover power with $\eta_P = 0.6$, airframes taken from the paper, and $P_c$ and $m_c$ added. The compute options are **illustrative**, not measured: module plus carrier plus cooling, over a flight-controller-only baseline. Replacing them with measured values is the point of Phase 2. $v_r$ is not corrected for the shift described in result 2.
 
 | Airframe | Compute option | $P_c / P_{mot,e}$ | Endurance | Range | Thrust-to-weight |
 |---|---|---|---|---|---|
@@ -109,6 +109,13 @@ These come from our implementation of the pen-and-paper algorithm ([`models/pen_
 
 **Mass costs as much as power.** We split the Orin NX case into its two effects. On the scout airframe, power alone costs 16% of endurance and mass alone costs 17%. On the racing airframe, the split is 12% for power and 21% for mass. The power-only loss is larger than the power fraction (13.3%) because higher current draw also lowers the battery's effective capacity. A benchmark that reports only watts misses half the cost.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="img/endurance-cost-dark.png">
+  <img alt="Endurance change versus compute power (left) and compute mass (right) for the racing/interceptor, scout, and heavy inspection airframes. At 40 W, endurance drops 28% (racing), 33% (scout), and 5% (heavy inspection); at 400 g, it drops 51%, 43%, and 9%." src="img/endurance-cost-light.png">
+</picture>
+
+*Figure 1. Endurance cost of compute power alone (left) and compute mass alone (right), from `models/plot_figures.py`. At realistic module weights (40 to 120 g per 7 to 15 W), mass costs small airframes about as much endurance as power does; the heavy airframe barely notices either.*
+
 **Latency matters less than sensing range for stopping.** Here is $v_{stop}$ in m/s, at $a = 5$ m/s²:
 
 | Sensing range $d$ | $\tau$ = 20 ms | 50 ms | 100 ms | 200 ms | 500 ms |
@@ -117,6 +124,13 @@ These come from our implementation of the pen-and-paper algorithm ([`models/pen_
 | 10 m | 9.9 | 9.8 | 9.5 | 9.0 | 7.8 |
 | 20 m | 14.0 | 13.9 | 13.7 | 13.2 | 11.9 |
 | 40 m | 19.9 | 19.8 | 19.5 | 19.0 | 17.7 |
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="img/speed-limits-dark.png">
+  <img alt="Maximum speed versus end-to-end latency. Left: the stopping limit stays nearly flat below 100 ms and is set mainly by sensing range (5 to 40 m), with the scout range-optimal speed of 13.2 m/s marked. Right: the tracking limit e over tau falls steeply with latency for corridors of 0.1, 0.2, and 0.5 m." src="img/speed-limits-light.png">
+</picture>
+
+*Figure 2. The stopping limit is set mainly by sensing range and barely moves with latency below 100 ms (left). The tracking limit is inversely proportional to latency (right).*
 
 Below about 100 ms, latency costs a few percent of stopping-limited speed. Doubling the reliable sensing range is worth 40% or more. Latency matters most for *tracking*. With $v_{track} \approx e/\tau$, the speed limit is directly proportional to $1/\tau$, which is why racing and close-quarters inspection are latency-bound. For a scout, compute buys speed mainly by making longer-range perception affordable within its power, mass, and latency budget.
 
