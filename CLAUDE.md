@@ -18,6 +18,13 @@ Benchmarks that map drone algorithms and flight-computer hardware to mission cap
   When a model changes, run the tests, rerun the three scripts, and update the plan's tables and figures to match.
 
   Placeholder inputs and modelling pitfalls are tracked in [#8](https://github.com/branes-ai/drone-capability/issues/8). Check it before trusting a new estimator result. When a change replaces a placeholder or adds one, update #8 in the same PR.
+- `bench/`: Phase 2 measurement harness (stand-in L1 pipelines, power sampling, results to `compute.json`). Results go in `bench/results/<target>/`, weighed masses in `bench/data/mass/`.
+  - `python3 bench/make_detector.py`: generates the stand-in detector in `bench/assets/` (needs torch; the ONNX files are gitignored, copy them to targets)
+  - `python3 bench/run.py --pipeline racing --target <name> --power jetson`: one measurement run
+  - `python3 bench/to_compute.py --target <name> --mass ... results...`: a `compute.json` entry from results and weighed mass
+  - `python3 -m unittest discover -s bench`: harness tests
+
+  Bench code runs on the targets, so keep it Python 3.6 compatible (no dataclasses, walrus, or `perf_counter_ns`) and limited to numpy and OpenCV, with onnxruntime optional.
 - Papers are kept outside the repo, in `../research/`. Cite them by arXiv link; don't commit PDFs.
 
 ## Git workflow

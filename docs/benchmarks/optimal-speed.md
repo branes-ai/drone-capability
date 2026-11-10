@@ -302,6 +302,51 @@ For each, record:
 
 **Deliverable:** measured ($\tau$, $P_c$, $m_c$, $d$) for each target, which replace the illustrative values above.
 
+#### Phase 2 harness
+
+The measurement harness is in `bench/`. It is built; the target measurements are still to be done.
+
+**What is built:**
+
+| Piece | What it does |
+|---|---|
+| `bench/pipelines/` | L1 stand-in pipelines for racing (60 Hz), scouting (30 Hz) and inspection (30 Hz), each a chain of timed stages built from off-the-shelf parts with the right compute shape |
+| `bench/make_detector.py` | Generates the racing pipeline's detector: a YOLOv8n-shaped network (2.6 M parameters, 0.87 GMACs at 320 px) with random weights |
+| `bench/run.py` | Runs one pipeline at mission rate, with other pipelines or CPU stress as concurrent load; records the latency distribution, per-stage timings, dropped frames, power and temperatures |
+| `bench/power.py` | Power sampling: Jetson INA3221 rails (Orin and the original Nano layouts), Intel RAPL, any sysfs power file, or an external logger's CSV |
+| `bench/to_compute.py` | Combines a target's results with a weighed-mass record (`bench/data/mass/`) into a `models/data/compute.json` entry |
+
+**How the model uses the measurements.** Each mission names its pipeline in `missions.json`, and the mission model then uses that pipeline's measured latency and power. The option-wide `latency_s` and `p_compute` become the worst case over the pipelines.
+
+**Latency definition.** End-to-end latency runs from the frame's capture timestamp to the end of the last stage, so it includes queueing when the pipeline falls behind. It excludes exposure, readout, the ISP and transport to the flight controller; add those with `--latency-extra-ms`. A result that drops more than 1% of frames is rejected: that pipeline doesn't keep up at mission rate on that target.
+
+**The stand-ins measure cost, not quality.** The detector has random weights and the inputs are synthetic, so the harness can't measure the perception-quality column ($d$, detection range). That needs the mission repos' real stacks and data.
+
+**Interception has no pipeline.** The mission model keeps its Phase 1 interception profile with illustrative compute values.
+
+**Harness check on the development desktop** (i7-12700K, CPU only, the other two pipelines as background load, no power reading because RAPL is root-only). This is not a flight target; it only shows the harness works:
+
+| Pipeline | Rate | p50 | p99 | Dropped | Dominant stage |
+|---|---|---|---|---|---|
+| Racing | 60 Hz | 5.5 ms | 6.2 ms | 0% | detector, 4.4 ms |
+| Scouting | 30 Hz | 56 ms | 73 ms | 14% | SGBM stereo, about 31 ms unloaded |
+| Inspection | 30 Hz | 6.3 ms | 7.7 ms | 0% | VIO back end and plane fit |
+
+Even on a desktop CPU under load, the scouting pipeline doesn't keep up at 30 Hz. On embedded targets, stereo has to run on the GPU or a hardware stereo engine. Measuring it on the CPU would bury the comparison under a choice of implementation.
+
+**Running it on a target:**
+
+```sh
+python3 bench/make_detector.py                         # on a machine with torch; copy bench/assets/ to the target
+python3 bench/run.py --pipeline racing --target orin-nx-15w --power jetson --soak 300 \
+    --background scout --notes "15 W mode, stock heatsink, open air"
+cp bench/data/mass/TEMPLATE.json bench/data/mass/orin-nx-15w.json   # weigh every item
+python3 bench/to_compute.py --target orin-nx-15w --mass bench/data/mass/orin-nx-15w.json \
+    --latency-extra-ms 15 bench/results/orin-nx-15w/*.json --write
+```
+
+On the targets, the harness needs Python 3.6 or later, numpy and OpenCV; onnxruntime is optional, and the detector falls back to OpenCV's dnn module without it.
+
 ### Phase 3: capability cards
 
 Combine Phase 1 and Phase 2 into a capability card for each (form factor, compute option). Each card shows the binding constraint and how much mission capability moves per watt, per gram, and per millisecond.

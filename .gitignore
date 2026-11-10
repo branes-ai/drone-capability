@@ -70,3 +70,6 @@ Testing/
 # Python
 __pycache__/
 *.pyc
+
+# Phase 2 bench: generated stand-in models (python3 bench/make_detector.py)
+bench/assets/*.onnx

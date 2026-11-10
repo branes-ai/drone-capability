@@ -1,0 +1,123 @@
+{
+  "schema": "drone-capability/bench-result/1",
+  "target": "desktop-i7-12700k",
+  "pipeline": "inspection",
+  "description": "Inspection L1 stand-in: VIO -> standoff estimation -> position control, at 30 Hz.",
+  "pipeline_meta": {
+    "camera": [
+      640,
+      480
+    ],
+    "max_features": 200,
+    "depth": [
+      160,
+      120
+    ]
+  },
+  "time_utc": "2026-11-10T19:40:00Z",
+  "platform": {
+    "hostname": "sw-21",
+    "machine": "x86_64",
+    "system": "Linux-7.0.0-43-generic-x86_64-with-glibc2.43",
+    "python": "3.11.17",
+    "cpus": 20,
+    "cpu": "12th Gen Intel(R) Core(TM) i7-12700K",
+    "numpy": "2.2.6",
+    "opencv": "4.12.0",
+    "onnxruntime": "1.23.2",
+    "ort_providers": [
+      "AzureExecutionProvider",
+      "CPUExecutionProvider"
+    ]
+  },
+  "load": {
+    "background": [
+      "racing",
+      "scout"
+    ],
+    "stress": 0
+  },
+  "notes": "harness check on the development desktop, not a flight target; other two pipelines as background load; no power (RAPL is root-only)",
+  "latency_scope": "frame capture timestamp to end of the last stage; excludes exposure, readout, ISP, and transport to the flight controller",
+  "rate_hz": 30.0,
+  "duration_s": 30.0,
+  "frames_offered": 900,
+  "frames_processed": 900,
+  "frames_dropped": 0,
+  "drop_fraction": 0.0,
+  "achieved_rate_hz": 30.0,
+  "latency_s": {
+    "n": 900,
+    "mean": 0.0063707755787375695,
+    "p50": 0.006318865838693455,
+    "p90": 0.00675301508163102,
+    "p99": 0.007710403840173967,
+    "max": 0.011705799028277397,
+    "min": 0.005036552669480443
+  },
+  "compute_s": {
+    "n": 900,
+    "mean": 0.006290018715145481,
+    "p50": 0.006242284522159025,
+    "p90": 0.006677269155625254,
+    "p99": 0.007595338764367625,
+    "max": 0.011641435965429991,
+    "min": 0.004939467937219888
+  },
+  "stages": [
+    {
+      "name": "vio_front",
+      "n": 900,
+      "mean": 0.0005654250887326068,
+      "p50": 0.0005477924714796245,
+      "p90": 0.0006069593713618815,
+      "p99": 0.0007424531411379576,
+      "max": 0.003925862023606896,
+      "min": 0.0004763479810208082
+    },
+    {
+      "name": "vio_back",
+      "n": 900,
+      "mean": 0.0012921188280840094,
+      "p50": 0.0012725915294140577,
+      "p90": 0.0014851731131784618,
+      "p99": 0.001938463820843026,
+      "max": 0.0024446399766020477,
+      "min": 0.0009286580025218427
+    },
+    {
+      "name": "standoff",
+      "n": 900,
+      "mean": 0.00441754032094549,
+      "p50": 0.004484050994506106,
+      "p90": 0.004699992056703195,
+      "p99": 0.005179050840670243,
+      "max": 0.010058154992293566,
+      "min": 0.0032363840145990252
+    },
+    {
+      "name": "control",
+      "n": 900,
+      "mean": 1.493447738337434e-05,
+      "p50": 1.5260506188496947e-05,
+      "p90": 1.665927702561021e-05,
+      "p99": 1.971904246602207e-05,
+      "max": 2.7642003260552883e-05,
+      "min": 1.0536983609199524e-05
+    }
+  ],
+  "power": {
+    "idle": null,
+    "run": null
+  },
+  "temperature_c": {
+    "start": {
+      "acpitz": 27.8,
+      "x86_pkg_temp": 48.0
+    },
+    "end": {
+      "acpitz": 27.8,
+      "x86_pkg_temp": 55.0
+    }
+  }
+}
