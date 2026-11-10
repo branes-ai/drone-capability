@@ -55,7 +55,9 @@ def v_turn(accel, turn_radius):
 def capability(airframe, compute, mission):
     """Speeds, endurance, range, and the binding speed limit. Units: SI."""
     m = airframe["m"] + compute["m_compute"]
-    p_c = compute["p_compute"]
+    pipe = mission.get("pipeline")
+    # Phase 2 measurements are per pipeline; fall back to the option's default.
+    p_c = compute.get("p_compute_by_pipeline_w", {}).get(pipe, compute["p_compute"])
     s, cap = airframe["n_series"], airframe["capacity_ah"]
 
     curve = pc.PowerCurve(m, airframe["r"], airframe["n_rotors"], airframe["area_cm2"])
@@ -72,7 +74,7 @@ def capability(airframe, compute, mission):
     if mission["turn_radius_m"] is not None:
         limits["v_turn"] = v_turn(accel, mission["turn_radius_m"])
 
-    tau = compute["latency_s"]
+    tau = compute.get("latency_by_pipeline_s", {}).get(pipe, compute["latency_s"])
     if tau is not None:
         if mission["sensing_range_m"] is not None:
             limits["v_stop"] = pp.v_stop(tau, mission["sensing_range_m"], accel)
@@ -134,7 +136,11 @@ def sensitivities(airframe, compute, mission):
                              ("per_10ms", "latency_s", 0.01)):
         if compute[field] is None:
             continue
+        # Bump the value the mission actually uses, per-pipeline or default.
+        by = {"p_compute": "p_compute_by_pipeline_w", "latency_s": "latency_by_pipeline_s"}.get(field)
         bumped = {**compute, field: compute[field] + step}
+        if by and mission.get("pipeline") in compute.get(by, {}):
+            bumped[by] = {**compute[by], mission["pipeline"]: compute[by][mission["pipeline"]] + step}
         out[key] = mission_value(capability(airframe, bumped, mission), mission) - base
     return out
 

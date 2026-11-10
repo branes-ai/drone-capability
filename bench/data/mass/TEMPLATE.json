@@ -1,0 +1,14 @@
+{
+  "_doc": "Weighed mass of a compute option, added over a flight-controller-only build. Copy to <target>.json and weigh every item on a scale (0.1 g resolution); don't copy datasheet masses. Set weighed: true once an item is on the scale. bench/to_compute.py refuses records with unweighed items.",
+  "description": "NVIDIA Jetson Orin NX 16 GB on <carrier>, with <cooling>",
+  "scale": "<scale model, resolution>",
+  "date": "YYYY-MM-DD",
+  "items": [
+    {"item": "module", "grams": 0.0, "weighed": false},
+    {"item": "carrier board", "grams": 0.0, "weighed": false},
+    {"item": "heatsink / fan / enclosure share", "grams": 0.0, "weighed": false},
+    {"item": "camera(s) and cables beyond the FC-only build", "grams": 0.0, "weighed": false},
+    {"item": "power regulator and wiring", "grams": 0.0, "weighed": false},
+    {"item": "mounting hardware", "grams": 0.0, "weighed": false}
+  ]
+}

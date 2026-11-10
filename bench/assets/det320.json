@@ -1,0 +1,12 @@
+{
+  "architecture": "YOLOv8n-shaped CSP detector, random weights",
+  "input": [
+    1,
+    3,
+    320,
+    320
+  ],
+  "params": 2610661,
+  "gmacs": 0.871,
+  "num_classes": 2
+}

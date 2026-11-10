@@ -1,0 +1,130 @@
+{
+  "schema": "drone-capability/bench-result/1",
+  "target": "desktop-i7-12700k",
+  "pipeline": "racing",
+  "description": "Racing L1 stand-in: gate detection -> gate pose -> state estimation -> MPC, at 60 Hz.",
+  "pipeline_meta": {
+    "detector_input": 320,
+    "detector_runtime": "onnxruntime:CPUExecutionProvider",
+    "camera": [
+      640,
+      480
+    ]
+  },
+  "time_utc": "2026-11-10T19:38:49Z",
+  "platform": {
+    "hostname": "sw-21",
+    "machine": "x86_64",
+    "system": "Linux-7.0.0-43-generic-x86_64-with-glibc2.43",
+    "python": "3.11.17",
+    "cpus": 20,
+    "cpu": "12th Gen Intel(R) Core(TM) i7-12700K",
+    "numpy": "2.2.6",
+    "opencv": "4.12.0",
+    "onnxruntime": "1.23.2",
+    "ort_providers": [
+      "AzureExecutionProvider",
+      "CPUExecutionProvider"
+    ]
+  },
+  "load": {
+    "background": [
+      "scout",
+      "inspection"
+    ],
+    "stress": 0
+  },
+  "notes": "harness check on the development desktop, not a flight target; other two pipelines as background load; no power (RAPL is root-only)",
+  "latency_scope": "frame capture timestamp to end of the last stage; excludes exposure, readout, ISP, and transport to the flight controller",
+  "rate_hz": 60.0,
+  "duration_s": 30.0,
+  "frames_offered": 1800,
+  "frames_processed": 1800,
+  "frames_dropped": 0,
+  "drop_fraction": 0.0,
+  "achieved_rate_hz": 60.0,
+  "latency_s": {
+    "n": 1800,
+    "mean": 0.00566349042172078,
+    "p50": 0.0055470514635089785,
+    "p90": 0.006031569495098666,
+    "p99": 0.0061744338058633726,
+    "max": 0.00965938699664548,
+    "min": 0.005193368357140571
+  },
+  "compute_s": {
+    "n": 1800,
+    "mean": 0.005596642883416886,
+    "p50": 0.005484281980898231,
+    "p90": 0.005965590849518776,
+    "p99": 0.0061033113586017864,
+    "max": 0.009593577997293323,
+    "min": 0.005088214005809277
+  },
+  "stages": [
+    {
+      "name": "detect",
+      "n": 1800,
+      "mean": 0.0046273878272040745,
+      "p50": 0.0045545749890152365,
+      "p90": 0.004852891620248556,
+      "p99": 0.004951280589448288,
+      "max": 0.00846882100449875,
+      "min": 0.004370943002868444
+    },
+    {
+      "name": "decode",
+      "n": 1800,
+      "mean": 0.0005749251225562248,
+      "p50": 0.0005500844854395837,
+      "p90": 0.0006702354003209621,
+      "p99": 0.000703700102167204,
+      "max": 0.0015995169524103403,
+      "min": 0.0004120430094189942
+    },
+    {
+      "name": "gate_pnp",
+      "n": 1800,
+      "mean": 5.68358404820578e-05,
+      "p50": 5.494197830557823e-05,
+      "p90": 6.528416997753084e-05,
+      "p99": 7.114213542081416e-05,
+      "max": 8.04029987193644e-05,
+      "min": 4.642904968932271e-05
+    },
+    {
+      "name": "estimate",
+      "n": 1800,
+      "mean": 8.672448065933875e-05,
+      "p50": 8.55419784784317e-05,
+      "p90": 9.83817910309881e-05,
+      "p99": 0.00010872417595237493,
+      "max": 0.00013012997806072235,
+      "min": 6.803200813010335e-05
+    },
+    {
+      "name": "mpc",
+      "n": 1800,
+      "mean": 0.00025076961251519,
+      "p50": 0.00024366550496779382,
+      "p90": 0.0002791823993902653,
+      "p99": 0.0002942592627368867,
+      "max": 0.00042372499592602253,
+      "min": 0.00017586298054084182
+    }
+  ],
+  "power": {
+    "idle": null,
+    "run": null
+  },
+  "temperature_c": {
+    "start": {
+      "acpitz": 27.8,
+      "x86_pkg_temp": 32.0
+    },
+    "end": {
+      "acpitz": 27.8,
+      "x86_pkg_temp": 49.0
+    }
+  }
+}

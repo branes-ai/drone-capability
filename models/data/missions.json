@@ -1,6 +1,7 @@
 {
-  "_doc": "Mission profiles for the Phase 1 estimator. objective picks the energy speed limit: 'range' uses v_r, 'endurance' uses v_e, 'speed' sets no energy limit. sensing_range_m enables the stopping limit v_stop (null: the course is known, no stopping limit). turn_radius_m is the tightest turn the mission must follow; it sets the turn limit v_turn = sqrt(a * R) and the latency agility limit v_agility = phase_budget * R / tau. corridor_m with uncompensated_latency = true adds the worst-case tracking limit v_track = e / tau, which assumes the stack does not predict its own motion over the latency; it is off by default, because an estimator with IMU propagation predicts over the latency. maneuver_fraction scales the full-thrust horizontal acceleration available for braking and turning. All values are ILLUSTRATIVE; each mission repo should own its profile.",
+  "_doc": "Mission profiles for the Phase 1 estimator. objective picks the energy speed limit: 'range' uses v_r, 'endurance' uses v_e, 'speed' sets no energy limit. sensing_range_m enables the stopping limit v_stop (null: the course is known, no stopping limit). turn_radius_m is the tightest turn the mission must follow; it sets the turn limit v_turn = sqrt(a * R) and the latency agility limit v_agility = phase_budget * R / tau. corridor_m with uncompensated_latency = true adds the worst-case tracking limit v_track = e / tau, which assumes the stack does not predict its own motion over the latency; it is off by default, because an estimator with IMU propagation predicts over the latency. maneuver_fraction scales the full-thrust horizontal acceleration available for braking and turning. pipeline names the Phase 2 L1 pipeline (bench/pipelines/) whose measured latency and power apply to the mission, when the compute option has per-pipeline values. All values are ILLUSTRATIVE; each mission repo should own its profile.",
   "racing": {
+    "pipeline": "racing",
     "description": "Fly a known gate course as fast as possible",
     "airframe": "rp1",
     "objective": "speed",
@@ -11,6 +12,7 @@
     "maneuver_fraction": 0.7
   },
   "scout": {
+    "pipeline": "scout",
     "description": "Reach a goal through unknown static clutter, maximizing range",
     "airframe": "scout-0.9kg",
     "objective": "range",
@@ -21,6 +23,7 @@
     "maneuver_fraction": 0.7
   },
   "inspection": {
+    "pipeline": "inspection",
     "description": "Inspect a structure at close standoff, maximizing time on station",
     "airframe": "inspection-small",
     "objective": "endurance",
