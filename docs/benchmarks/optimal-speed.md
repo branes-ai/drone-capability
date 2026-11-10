@@ -68,20 +68,23 @@ Compute affects a mission through four channels. The paper's model can carry the
 |---|---|---|
 | **1. Power** $P_c$ | adds a constant offset to the power curve | endurance and range, and it shifts $v_r$ |
 | **2. Mass** $m_c$ | raises hover power ($P_h \propto m^{3/2}$) and lowers thrust-to-weight | endurance, range, $v_e$ and $v_r$ (through $v_{i,h}$), acceleration and agility |
-| **3. Latency** $\tau$ (p99, not the mean) | the drone travels "blind" during $\tau$ | the maximum safe speed and the trajectory-tracking error |
+| **3. Latency** $\tau$ (p99, not the mean) | the drone travels "blind" during $\tau$, and the control loop loses phase | the stopping-limited speed, and the speed at which turns can still be tracked |
 | **4. Perception quality** | sensing range $d$, estimation accuracy, detection rate, all bought with compute | the maximum safe speed, and how tight a corridor the drone can hold |
 
 The speed a mission can actually use is the smallest of these limits:
 
-$$v_{mission} = \min\big(\; v_{energy}(P_c, m_c),\;\; v_{stop}(\tau, d, a),\;\; v_{track}(\tau, e),\;\; v_{max}(T/W) \;\big)$$
+$$v_{mission} = \min\big(\; v_{energy}(P_c, m_c),\;\; v_{stop}(\tau, d, a),\;\; v_{turn}(a, R),\;\; v_{agility}(\tau, R),\;\; v_{max}(T/W) \;\big)$$
 
 where $v_{energy}$ is $v_r$ or $v_e$ depending on what the mission is trying to maximize, and:
 
 - $v_{stop} = a\left(\sqrt{\tau^2 + 2d/a} - \tau\right)$ stops within the sensing range $d$ at deceleration $a$.
-- $v_{track} \approx e / \tau$ keeps the error that builds up during one latency interval inside the corridor $e$.
+- $v_{turn} = \sqrt{a R}$ holds the mission's tightest turn radius $R$ at the available horizontal acceleration $a$, which falls as compute mass lowers thrust-to-weight.
+- $v_{agility} = \phi R / \tau$ keeps the phase lost to latency at the turn rate $v/R$ within a budget $\phi$ (0.5 rad).
 - $v_{max}$ is the top speed that thrust-to-weight allows.
 
-**The central claim to test:** whenever $v_{stop}$ or $v_{track}$ is below $v_r$, the drone is speed-limited by its compute, not its energy. In that case, lower latency and longer perception range convert directly into mission speed, and indirectly into range, because flying below $v_r$ costs energy per meter.
+The first version of this plan used $v_{track} \approx e/\tau$, which keeps the error built up during one latency interval inside a corridor $e$. That bound assumes the stack does not predict its own motion over the latency. With IMU propagation, it doesn't apply, and it made a 60 ms racer look limited to 5 m/s. Phase 1 replaced it with $v_{turn}$ and $v_{agility}$ and keeps $e/\tau$ only as an opt-in worst case. See [Phase 1 results](#phase-1-results).
+
+**The central claim to test:** whenever $v_{stop}$ or $v_{agility}$ is below $v_r$, the drone is speed-limited by its compute, not its energy. In that case, lower latency and longer perception range convert directly into mission speed, and indirectly into range, because flying below $v_r$ costs energy per meter.
 
 ### Two analytic results the benchmark should confirm
 
@@ -130,9 +133,9 @@ These come from our implementation of the pen-and-paper algorithm ([`models/pen_
   <img alt="Maximum speed versus end-to-end latency. Left: the stopping limit stays nearly flat below 100 ms and is set mainly by sensing range (5 to 40 m), with the scout range-optimal speed of 13.2 m/s marked. Right: the tracking limit e over tau falls steeply with latency for corridors of 0.1, 0.2, and 0.5 m." src="img/speed-limits-light.png">
 </picture>
 
-*Figure 2. The stopping limit is set mainly by sensing range and barely moves with latency below 100 ms (left). The tracking limit is inversely proportional to latency (right).*
+*Figure 2. The stopping limit is set mainly by sensing range and barely moves with latency below 100 ms (left). The uncompensated tracking limit is inversely proportional to latency (right); Phase 1 found it applies only to stacks that don't predict their own motion over the latency.*
 
-Below about 100 ms, latency costs a few percent of stopping-limited speed. Doubling the reliable sensing range is worth 40% or more. Latency matters most for *tracking*. With $v_{track} \approx e/\tau$, the speed limit is directly proportional to $1/\tau$, which is why racing and close-quarters inspection are latency-bound. For a scout, compute buys speed mainly by making longer-range perception affordable within its power, mass, and latency budget.
+Below about 100 ms, latency costs a few percent of stopping-limited speed. Doubling the reliable sensing range is worth 40% or more. Without latency compensation, latency would matter most for *tracking*, since $v_{track} \approx e/\tau$ is directly proportional to $1/\tau$. Phase 1 showed that IMU propagation removes that limit, and that latency then binds only beyond a budget of a few hundred milliseconds. For a scout, compute buys speed mainly by making longer-range perception affordable within its power, mass, and latency budget.
 
 ## Hypotheses by form factor
 
@@ -142,6 +145,11 @@ Below about 100 ms, latency costs a few percent of stopping-limited speed. Doubl
 | **Scouting** | time to goal and range through unknown clutter | $v_{stop}$ (sensing range, latency) in clutter, $v_r$ in the open | In clutter, $v_{stop} < v_r$, so the scout is compute-limited. An efficient computer that affords longer-range perception raises both speed and range. In the open, compute power and mass cost 11 to 24% of range. |
 | **Inspection** | time on station, standoff accuracy, area covered per sortie | endurance near $v_e$ and hover; $v_{track}$ for close standoff | Compute efficiency matters a lot on small inspection drones (Skydio class) and little on heavy ones (Matrice class: −5% for an Orin NX). Latency sets how close and how fast the drone can work near structures. |
 | **Interception** | closing speed, miss distance, engagement envelope | guidance-loop latency, thrust-to-weight, top speed | Dash speeds are well beyond the paper's validated envelope. Capability is set by $\tau$ in the tracking loop and by thrust-to-weight. Energy only has to last the engagement window. |
+
+**Phase 1 check** (illustrative inputs; see [Phase 1 results](#phase-1-results)):
+- **Racing and interception:** thrust-to-weight binds through the turn limit, and compute mass costs 0.6 to 1.2 m/s per 100 g. Latency does not bind below a budget of 280 to 450 ms, so the latency half of the racing hypothesis is not supported at realistic latencies.
+- **Scouting:** the stopping limit stays above the turn and energy limits at 20 m sensing range, and mass and power cost range.
+- **Inspection:** the small airframe is turn- or energy-limited, and loses 1.4 to 3.7 minutes on station per 100 g of compute.
 
 ## Benchmark plan
 
@@ -182,12 +190,98 @@ The model is [`models/pen_and_paper.py`](../../models/pen_and_paper.py), and the
 
 ### Phase 1: add compute to the model
 
+**Status: done.** Results are below.
+
 - Add $P_c$ and $m_c$ to the power model and propagate them through the battery model.
 - Build a full power-versus-speed curve $P(v)$, so we can compute the $v_r$ shift from $P_c$. Two candidate sources:
   - the paper's BEM simulator / NeuroBEM, if available;
   - a momentum-theory-plus-drag curve calibrated to the paper's anchor points ($P_h$, $P_e$ at $v_e$, $P_r$ at $v_r$).
-- Add $v_{stop}$, $v_{track}$, and $v_{max}$, and output $v_{mission}$ together with the constraint that binds it.
-- **Deliverable:** `drone-capability estimate` produces, for each airframe and compute option: $v_e$, $v_r$, $v_{mission}$, endurance, range, thrust-to-weight, and the binding constraint.
+- Add the speed limits, and output $v_{mission}$ together with the constraint that binds it.
+- **Deliverable:** an estimator that produces, for each airframe and compute option: $v_e$, $v_r$, $v_{mission}$, endurance, range, thrust-to-weight, and the binding constraint.
+
+#### Phase 1 results
+
+**Code.**
+- [`models/power_curve.py`](../../models/power_curve.py): the $P(v)$ surrogate, optimal speeds with compute power, top speed, and maneuvering acceleration.
+- [`models/mission.py`](../../models/mission.py): the speed limits, $v_{mission}$, the latency budget, and sensitivities.
+- [`models/estimate.py`](../../models/estimate.py): the command-line estimator, `python3 models/estimate.py --help`.
+- Inputs in [`models/data/`](../../models/data/): airframes, compute options, and mission profiles.
+- Tests in [`models/test_phase1.py`](../../models/test_phase1.py), run with the Phase 0 suite (28 tests in total).
+
+**The power curve.** The paper's BEM code is not published; only its flight dataset is ([NeuroBEM](https://rpg.ifi.uzh.ch/NeuroBEM.html)). We therefore built a two-parameter surrogate, $P(v)/P_h = u(kx) + D x^3$ with $x = v/v_{i,h}$:
+- $u$ is the momentum-theory (Glauert) induced-inflow ratio, and the inflow scale $k$ absorbs dynamic lift that momentum theory misses.
+- $D x^3$ is parasite drag power.
+- $k$ and $D$ are fitted per airframe by least squares to the four pen-and-paper anchor conditions. A wider family with profile-power terms was tried, and the fit drove those terms to zero.
+- Pure momentum theory ($k = 1$) can't reproduce the anchors: on a Matrice-class drone it can lower power by at most 7.3% at $v_e$, while the paper's model needs 8.6%.
+
+Against the Phase 0 model, across Table III:
+- the fitted $v_e$ and $v_r$ are within 3.4% of eq. 18;
+- endurance and range are within 1% on small airframes, and within 5.5% on Matrice-class airframes, where the paper's curve dips deeper than any momentum-theory shape can.
+
+**Both analytic results are confirmed** (scout airframe, compute power only):
+
+| $P_c$ | $v_e$ | $v_r$ | Range at the new $v_r$ | Range at the old $v_r$ |
+|---|---|---|---|---|
+| 0 W | 7.97 m/s | 13.14 m/s | 31.8 km | 31.8 km |
+| 7 W | 7.97 m/s | 13.39 m/s (+2%) | 29.8 km | 29.8 km |
+| 15 W | 7.97 m/s | 13.66 m/s (+4%) | 27.9 km | 27.8 km |
+| 40 W | 7.97 m/s | 14.44 m/s (+10%) | 23.3 km | 23.0 km |
+
+- **$v_e$ does not move.**
+- **$v_r$ rises with compute power.**
+- **The range optimum is flat:** cruising at the re-optimized speed recovers only about 1% of range at 40 W. The shift matters less for range itself than for which speed limit binds, since a power-hungry scout wants to fly faster than its perception may allow.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="img/range-shift-dark.png">
+  <img alt="Range per Wh of battery versus cruise speed for the scout airframe at 0, 7, 15, and 40 W of compute. The curves drop as compute power rises, and their peaks move right, from a range-optimal speed of 13.1 m/s at 0 W to 14.4 m/s at 40 W." src="img/range-shift-light.png">
+</picture>
+
+*Figure 3. Range per Wh of battery versus cruise speed at four compute powers, for the scout airframe with mass held fixed. Dots mark the range-optimal speed. This is the curve Phase 5 measures in flight.*
+
+**The tracking limit was wrong, and two limits replace it.** The plan's $v_{track} = e/\tau$ assumes the stack can't predict its own motion over the latency. Any estimator with IMU propagation does, so that bound made a racer with 60 ms latency look limited to 5 m/s. Latency instead costs control-loop phase at the turn rate $v/R$, which gives $v_{agility} = \phi R / \tau$. The same turn radius brings in a limit that has nothing to do with latency: $v_{turn} = \sqrt{a R}$, which falls as compute mass lowers thrust-to-weight. $e/\tau$ stays available as a worst case (`uncompensated_latency` in a mission profile).
+
+**Estimates with the illustrative compute options.** These are from `python3 models/estimate.py`. The mission value is speed for racing and interception, range for scouting, and time on station for inspection.
+
+| Mission | Compute | T/W | $v_{mission}$ | Binding | Mission value | Latency budget | Per +100 g |
+|---|---|---|---|---|---|---|---|
+| Racing (rp1) | efficient companion | 4.86 | 18.1 m/s | $v_{turn}$ | 18.1 m/s | 277 ms | −0.88 m/s |
+| | Orin NX class | 4.51 | 17.4 m/s | $v_{turn}$ | 17.4 m/s | 288 ms | −0.79 m/s |
+| | AGX Orin class | 3.72 | 15.7 m/s | $v_{turn}$ | 15.7 m/s | 319 ms | −0.61 m/s |
+| Scout (0.9 kg) | efficient companion | 2.40 | 8.6 m/s | $v_{turn}$ | 22.0 km | 289 ms | −4.1 km |
+| | Orin NX class | 2.21 | 8.2 m/s | $v_{turn}$ | 17.4 km | 304 ms | −3.0 km |
+| | AGX Orin class | 1.80 | 7.2 m/s | $v_{turn}$ | 9.9 km | 348 ms | −1.4 km |
+| Inspection (small) | efficient companion | 2.37 | 8.4 m/s | $v_{energy}$ | 24.0 min | 297 ms | −3.7 min |
+| | Orin NX class | 2.16 | 8.1 m/s | $v_{turn}$ | 19.7 min | 308 ms | −2.8 min |
+| | AGX Orin class | 1.72 | 6.9 m/s | $v_{turn}$ | 12.3 min | 360 ms | −1.4 min |
+| Intercept (rp1) | efficient companion | 4.86 | 25.6 m/s | $v_{turn}$ | 25.6 m/s | 391 ms | −1.24 m/s |
+| | Orin NX class | 4.51 | 24.6 m/s | $v_{turn}$ | 24.6 m/s | 407 ms | −1.12 m/s |
+| | AGX Orin class | 3.72 | 22.2 m/s | $v_{turn}$ | 22.2 m/s | 451 ms | −0.86 m/s |
+
+The flight-controller-only option is infeasible for all four missions, because each needs onboard perception.
+
+**The latency budget is the main Phase 1 finding.** The latency budget is the largest latency at which no latency limit binds yet. Below it, a faster perception pipeline doesn't raise mission speed at all; only lighter or lower-power compute does. For every mission and compute option here, the budget is 280 to 450 ms. That is far above the 20 to 60 ms the illustrative compute options deliver, so in this model:
+- **Mass is the binding compute channel for speed.** It lowers thrust-to-weight, which lowers the turn and braking limits: −0.6 to −1.2 m/s per 100 g for racing and interception.
+- **Power and mass together set range and endurance:** −1.4 to −4.1 km of scout range per 100 g, and −0.05 to −0.2 km per watt.
+- **Latency matters only past the budget.** Above it, mission speed falls steeply (Figure 4).
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="img/latency-budget-dark.png">
+  <img alt="Mission speed versus end-to-end latency for racing, scout, inspection, and interception with Orin NX class compute. Each curve is flat until its latency budget, from 288 ms for racing to 407 ms for interception, then falls steeply." src="img/latency-budget-light.png">
+</picture>
+
+*Figure 4. Mission speed versus perception latency with Orin NX class mass and power. Each mission's speed is flat until its latency budget (dots), then falls. Scout (dashed) and inspection nearly coincide.*
+
+For a drone designer, this reframes the hypotheses: below the budget, buy lighter and lower-power compute rather than faster compute.
+
+**These results depend on placeholder inputs.** The binding constraint is $v_{turn}$ almost everywhere, which makes the mission turn radii the most influential assumption: 10 m racing, 5 m scouting and inspection, 20 m interception. They are placeholders, as are the thrust-to-weight of the paper-derived airframes and every compute latency. The latency budget is more robust than the binding constraint, because it scales with $R/v$ and $d/v$, not with the absolute speeds.
+
+Other caveats:
+- $v_{max}$ uses a quadratic drag coefficient, from `rp1.yaml` for rp1 and derived from the fitted $D$ for the other airframes, at speeds beyond the BEM model's validated 18 m/s.
+- In this steady-flight model, the turn limit applies to the whole flight. Phase 4 simulation is where mixed straight and turning segments get scored.
+
+**Deferred:**
+- **The full battery model (Table I) moves to Phase 4.** Steady flight is fully served by the eq. 21 effective-capacity fit, and the Table I model only matters for non-constant power profiles. Its units also need resolving first: as printed, $U_0(E_{cell})$ doesn't reach 3.5 V at a plausible per-cell energy unless $E_{cell}$ is in kJ/Ah, and the internal-resistance fit grows with cell capacity, which contradicts LiPo behaviour.
+- **Mission-repo airframes:** only racing-drone has one (`rp1`). Its battery, propeller size, and frontal area are placeholders here, because `rp1.yaml` doesn't define them. scout-drone copies `rp1`, and inspection-drone and interceptor-drone have no vehicle yet, so their airframes come from the paper's Table III drones.
 
 ### Phase 2: measure the compute
 
