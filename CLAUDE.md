@@ -10,7 +10,10 @@ Benchmarks that map drone algorithms and flight-computer hardware to mission cap
   - `python3 models/compute_scenarios.py`: prints the estimate tables in `docs/benchmarks/optimal-speed.md`
   - `python3 models/plot_figures.py`: regenerates the figures in `docs/benchmarks/img/` (needs matplotlib)
 
-  - `python3 -m unittest discover -s models`: regression tests against the paper (Phase 0)
+  - `python3 models/estimate.py`: Phase 1 mission-capability estimator; inputs are in `models/data/` (airframes, compute options, missions)
+  - `python3 -m unittest discover -s models`: regression tests (Phase 0 paper reproduction, Phase 1 model)
+
+  The models need numpy and scipy; the figures also need matplotlib.
 
   When a model changes, run the tests, rerun the three scripts, and update the plan's tables and figures to match.
 - Papers are kept outside the repo, in `../research/`. Cite them by arXiv link; don't commit PDFs.

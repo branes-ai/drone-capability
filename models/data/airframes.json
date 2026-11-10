@@ -1,0 +1,36 @@
+{
+  "_doc": "Reference airframes for the Phase 1 estimator. Mass excludes the companion computer; compute options add their own mass. Fields marked in 'placeholders' are assumptions, not measurements; replace them with each mission repo's identified values. max_thrust_n is the total thrust of all rotors.",
+  "rp1": {
+    "description": "racing-drone's RP-1, an A2RL-class 5-inch racing quadrotor (racing-drone/vehicles/rp1.yaml). Also used for interception until interceptor-drone has its own vehicle.",
+    "m": 0.966, "n_rotors": 4, "r": 0.0635, "area_cm2": 200,
+    "n_series": 6, "capacity_ah": 1.5,
+    "max_thrust_n": 48.0,
+    "drag_coefficient": 0.030,
+    "source": "mass, rotor count, max thrust (4 x 12 N), and quadratic drag from rp1.yaml",
+    "placeholders": ["r: 5-inch propeller per rp1.yaml comment", "area_cm2: the paper's 5-inch example (Fig. 1)", "battery: 6S 1.5 Ah", "m: rp1.yaml does not say whether 0.966 kg includes the companion computer; treated as excluding it", "max_thrust_n and drag_coefficient are rp1.yaml placeholders"]
+  },
+  "scout-0.9kg": {
+    "description": "Scout class, Mavic 3 size (paper Table III). scout-drone has no airframe of its own yet.",
+    "m": 0.90, "n_rotors": 4, "r": 0.119, "area_cm2": 215,
+    "n_series": 4, "capacity_ah": 5.0,
+    "max_thrust_n": 22.1,
+    "source": "mass, propeller, battery, and area from the paper's Table III (DJI Mavic 3)",
+    "placeholders": ["max_thrust_n: thrust-to-weight 2.5 assumed"]
+  },
+  "inspection-small": {
+    "description": "Small inspection class, Skydio 2 size (paper Table III).",
+    "m": 0.78, "n_rotors": 4, "r": 0.085, "area_cm2": 268,
+    "n_series": 3, "capacity_ah": 4.3,
+    "max_thrust_n": 19.1,
+    "source": "mass, propeller, battery, and area from the paper's Table III (Skydio 2)",
+    "placeholders": ["max_thrust_n: thrust-to-weight 2.5 assumed"]
+  },
+  "inspection-heavy": {
+    "description": "Heavy inspection class, Matrice 200 size (paper Table III).",
+    "m": 6.14, "n_rotors": 4, "r": 0.216, "area_cm2": 1700,
+    "n_series": 6, "capacity_ah": 15.3,
+    "max_thrust_n": 120.5,
+    "source": "mass, propeller, battery, and area from the paper's Table III (DJI Matrice 200)",
+    "placeholders": ["max_thrust_n: thrust-to-weight 2.0 assumed"]
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "_doc": "Compute options for the Phase 1 estimator: electrical power p_compute [W], mass added over a flight-controller-only build m_compute [kg], and end-to-end p99 latency of the mission's perception-to-actuation pipeline latency_s [s]. All values are ILLUSTRATIVE until Phase 2 measures them. latency_s = null means the option runs no onboard perception, so missions that need it are infeasible.",
+  "fc-only": {
+    "description": "Flight-controller MCU only (STM32H7 class), no companion computer",
+    "p_compute": 0.5, "m_compute": 0.0, "latency_s": null
+  },
+  "efficient-companion": {
+    "description": "Efficient companion SoC (Dragonwing / Ventuno Q class)",
+    "p_compute": 7.0, "m_compute": 0.04, "latency_s": 0.060
+  },
+  "orin-nx-15w": {
+    "description": "NVIDIA Jetson Orin NX, 15 W mode, with carrier and cooling",
+    "p_compute": 15.0, "m_compute": 0.12, "latency_s": 0.035
+  },
+  "agx-orin-40w": {
+    "description": "NVIDIA Jetson AGX Orin, 40 W mode, with carrier and cooling",
+    "p_compute": 40.0, "m_compute": 0.35, "latency_s": 0.020
+  }
+}
