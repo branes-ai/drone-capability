@@ -16,6 +16,8 @@ Benchmarks that map drone algorithms and flight-computer hardware to mission cap
   The models need numpy and scipy; the figures also need matplotlib.
 
   When a model changes, run the tests, rerun the three scripts, and update the plan's tables and figures to match.
+
+  Placeholder inputs and modelling pitfalls are tracked in [#8](https://github.com/branes-ai/drone-capability/issues/8). Check it before trusting a new estimator result. When a change replaces a placeholder or adds one, update #8 in the same PR.
 - Papers are kept outside the repo, in `../research/`. Cite them by arXiv link; don't commit PDFs.
 
 ## Git workflow
