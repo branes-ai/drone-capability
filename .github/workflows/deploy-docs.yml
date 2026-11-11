@@ -1,0 +1,34 @@
+name: Deploy Documentation
+
+# Builds the Starlight docs site (generated from docs/ by docs-kit, at the
+# version docs-site/package.json pins) and the Doxygen C++ API reference, if
+# the config has one, and publishes them to GitHub Pages at
+# https://branes-ai.github.io/drone-capability/. The steps are docs-kit's shared deploy
+# workflow; this file keeps the triggers.
+#
+# One-time setup (repo admin): Pages' source must be GitHub Actions:
+#   gh api -X POST repos/branes-ai/drone-capability/pages -f build_type=workflow
+# After that, every push to main touching docs/, docs-site/, the public headers
+# (the API reference, once the config has one), or this workflow redeploys.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'docs-site/**'
+      - 'sdk/include/**'
+      - '.github/workflows/deploy-docs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pages:
+    uses: branes-ai/docs-kit/.github/workflows/pages.yml@256b5f8d72f4c00ee508736d8f5788dcd29ca249  # v0.6.3
+    # The deploy job inside needs the Pages write scopes.
+    permissions:
+      contents: read
+      pages: write
+      id-token: write

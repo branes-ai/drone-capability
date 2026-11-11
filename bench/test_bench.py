@@ -177,6 +177,15 @@ class Summarize(unittest.TestCase):
             self.assertIn("b 6.0 ms", lines[2])
             self.assertIn("7.0", lines[2])
 
+    def test_results_page_is_current(self):
+        # docs/benchmarks/results.md is generated from bench/results/; a new
+        # result must come with the regenerated page.
+        import summarize
+        with open(summarize.PAGE) as f:
+            committed = f.read()
+        self.assertEqual(committed, summarize.page(summarize.all_results()),
+                         "docs/benchmarks/results.md is stale: run python3 bench/summarize.py --page")
+
 
 class ModelUsesPerPipelineValues(unittest.TestCase):
 
