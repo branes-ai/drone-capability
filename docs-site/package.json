@@ -1,0 +1,21 @@
+{
+  "name": "drone-capability-docs-site",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "sync": "docs-kit sync",
+    "predev": "node scripts/html-figures.mjs",
+    "dev": "docs-kit dev",
+    "start": "docs-kit dev",
+    "prebuild": "node scripts/html-figures.mjs",
+    "build": "docs-kit build",
+    "check": "docs-kit check",
+    "api": "docs-kit api",
+    "build:full": "docs-kit api && docs-kit build",
+    "preview": "docs-kit preview"
+  },
+  "dependencies": {
+    "@branes-ai/docs-kit": "github:branes-ai/docs-kit#v0.6.3"
+  }
+}

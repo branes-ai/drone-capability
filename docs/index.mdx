@@ -1,0 +1,35 @@
+---
+title: "Drone Capability"
+description: "Benchmarks that map drone algorithms and flight-computer hardware to mission capability."
+template: splash
+hero:
+  tagline: "How fast, how far, and at what cost: benchmarks that map drone algorithms and flight computers to mission capability."
+  image:
+    file: ../../assets/hero.svg
+  actions:
+    - text: Get Started
+      link: ./getting-started/introduction/
+      icon: right-arrow
+    - text: Phase 2 results
+      link: ./benchmarks/results/
+      icon: document
+      variant: secondary
+    - text: View on GitHub
+      link: https://github.com/branes-ai/drone-capability
+      icon: external
+      variant: minimal
+---
+
+{/* The site's landing page. It is MDX for the hero;
+    docs/README.md is the documentation map. */}
+
+## What Drone Capability is
+
+A datasheet gives TOPS and watts. A drone designer needs to know whether a given algorithm on a given part lets the drone fly 15 m/s through a forest, and what it costs in endurance. This repo connects the two: a model of how compute power, mass and latency change a mission's speed, range and endurance, and a harness that measures those three numbers on real flight computers.
+
+## Where to go next
+
+- **[Introduction](getting-started/introduction.md)**: what is in the repo, and how to run the models and the harness.
+- **[Optimal speed](benchmarks/optimal-speed.md)**: the benchmark plan, from the paper reproduction to flight validation, with each phase's results.
+- **[Benchmarking workflow](benchmarks/workflow.md)**: how a compute target is measured, step by step, and the pitfalls the first targets found.
+- **[Phase 2 results](benchmarks/results.md)**: every measurement so far: Jetson Orin Nano Super (CPU and GPU) and Arduino Ventuno Q (CPU and NPU).

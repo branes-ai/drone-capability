@@ -5,6 +5,7 @@ Benchmarks that map drone algorithms and flight-computer hardware to mission cap
 ## Layout
 
 - `docs/benchmarks/`: benchmark plans. Figures go in `docs/benchmarks/img/`, as a light and a dark PNG embedded with a `<picture>` element.
+- `docs-site/`: the docs site, generated from `docs/` by [docs-kit](https://github.com/branes-ai/docs-kit) and published at <https://branes-ai.github.io/drone-capability/> on every merge to main. Edit `docs/`, never the generated content. A new document goes in the map, `docs/README.md`. The PR check (`.github/workflows/docs-site.yml`) fails on a broken relative link or anchor; check locally with `npm run build && npm run check` in `docs-site/` (Node 22). `scripts/html-figures.mjs` copies the `<picture>` images, which docs-kit doesn't handle.
 - `models/`: Python capability models. Run them from the repo root:
   - `python3 models/pen_and_paper.py`: reproduces the Bauersfeld & Scaramuzza Mavic 3 example
   - `python3 models/compute_scenarios.py`: prints the estimate tables in `docs/benchmarks/optimal-speed.md`
@@ -23,7 +24,10 @@ Benchmarks that map drone algorithms and flight-computer hardware to mission cap
   - `python3 bench/run.py --pipeline racing --target <name> --power jetson`: one measurement run
   - `python3 bench/to_compute.py --target <name> --mass ... results...`: a `compute.json` entry from results and weighed mass
   - `python3 bench/summarize.py bench/results/<target>...`: the markdown results table for the plan
+  - `python3 bench/summarize.py --page`: regenerates `docs/benchmarks/results.md` from `bench/results/`; commit it with new results (a bench test fails when it is stale)
   - `python3 -m unittest discover -s bench`: harness tests
+
+  How a target is measured, end to end, is in [docs/benchmarks/workflow.md](docs/benchmarks/workflow.md).
 
   Bench code runs on the targets, so keep it Python 3.6 compatible (no dataclasses, walrus, or `perf_counter_ns`) and limited to numpy and OpenCV, with onnxruntime optional.
 - Papers are kept outside the repo, in `../research/`. Cite them by arXiv link; don't commit PDFs.

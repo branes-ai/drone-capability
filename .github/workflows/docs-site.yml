@@ -1,0 +1,31 @@
+name: Docs site
+
+# Builds the docs site (generated from docs/ by docs-kit) as the deploy does,
+# so a broken relative link or anchor fails the PR instead of the deploy after
+# merge. A repo with a CI workflow can move this job into it.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+# A new push to a PR supersedes its in-flight run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# Top-level least-privilege default.
+permissions:
+  contents: read
+
+jobs:
+  docs-site:
+    name: Docs site
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      # Installs the pinned docs-kit (docs-site/package.json), builds the site as
+      # the deploy does, and checks every link and anchor in it.
+      - uses: branes-ai/docs-kit/actions/check@256b5f8d72f4c00ee508736d8f5788dcd29ca249  # v0.6.3
