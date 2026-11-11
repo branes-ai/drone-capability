@@ -73,3 +73,4 @@ __pycache__/
 
 # Phase 2 bench: generated stand-in models (python3 bench/make_detector.py)
 bench/assets/*.onnx
+bench/assets/*.engine

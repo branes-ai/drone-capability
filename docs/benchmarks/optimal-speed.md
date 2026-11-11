@@ -304,7 +304,7 @@ For each, record:
 
 #### Phase 2 harness
 
-The measurement harness is in `bench/`. It is built; the target measurements are still to be done.
+The measurement harness is in `bench/`. The first two targets are measured (see [Phase 2 results](#phase-2-results-first-two-targets)); masses are not yet weighed.
 
 **What is built:**
 
@@ -345,7 +345,50 @@ python3 bench/to_compute.py --target orin-nx-15w --mass bench/data/mass/orin-nx-
     --latency-extra-ms 15 bench/results/orin-nx-15w/*.json --write
 ```
 
-On the targets, the harness needs Python 3.6 or later, numpy and OpenCV; onnxruntime is optional, and the detector falls back to OpenCV's dnn module without it.
+On the targets, the harness needs Python 3.6 or later, numpy and OpenCV; onnxruntime is optional, and the detector falls back to OpenCV's dnn module without it. Accelerated runs select the backend with `--provider tensorrt` or `--provider qnn` (detector) and `--stereo vpi-cuda` (scouting stereo).
+
+#### Phase 2 results: first two targets
+
+Two boards, each measured twice in one software environment: once on the CPU only, and once with the accelerator. Every run is 60 s at mission rate after a 60 s soak, open air, stock fan.
+
+- **Jetson Orin Nano Super** dev kit, JetPack 6.2.1, nvpmodel 25 W. Accelerated set: detector on TensorRT 10.3 FP16, stereo on VPI CUDA. Measured under the default DVFS governor, and again with `jetson_clocks` (CPU 1344 MHz, GPU 918 MHz pinned).
+- **Arduino Ventuno Q** (Qualcomm Monaco, Hexagon HTP V75), Ubuntu 24.04. Accelerated set: detector on the NPU through onnxruntime-qnn (FP16, QAIRT 2.49). Stereo stays on the CPU: there is no Qualcomm stereo backend in the harness yet.
+
+Each cell is the achieved rate and the p99 end-to-end latency; **bold** keeps up at mission rate (under 1% dropped).
+
+Alone:
+
+| Target, set | Racing (60 Hz) | Scouting (30 Hz) | Inspection (30 Hz) | Idle [W] |
+|---|---|---|---|---|
+| Orin Nano 25 W, CPU | 27.1 Hz, 54 ms | 7.0 Hz, 175 ms | **30 Hz, 28 ms** | 5.3 |
+| Orin Nano 25 W, GPU | **60 Hz, 13.5 ms** | 27.8 Hz, 69 ms | **30 Hz, 28 ms** | 5.3 |
+| Orin Nano 25 W + jetson_clocks, CPU | 28.8 Hz, 52 ms | 7.1 Hz, 174 ms | **30 Hz, 26 ms** | 7.1 |
+| Orin Nano 25 W + jetson_clocks, GPU | **60 Hz, 7.0 ms** | **30 Hz, 16 ms** | **30 Hz, 27 ms** | 7.2 |
+| Ventuno Q, CPU | 25.8 Hz, 56 ms | 12.1 Hz, 116 ms | **30 Hz, 24 ms** | 8.6 |
+| Ventuno Q, NPU | **60 Hz, 7.7 ms** | 12.1 Hz, 116 ms | **30 Hz, 23 ms** | 8.5 |
+
+With the other two pipelines as concurrent load (the condition the plan asks for). Power is the mean over the three loaded runs, with all three pipelines running:
+
+| Target, set | Racing (60 Hz) | Scouting (30 Hz) | Inspection (30 Hz) | Power [W] |
+|---|---|---|---|---|
+| Orin Nano 25 W, CPU | 7.4 Hz, 245 ms | 4.5 Hz, 357 ms | 19.8 Hz, 108 ms | 8.3 |
+| Orin Nano 25 W, GPU | **60 Hz, 14 ms** | **30 Hz, 41 ms** | **30 Hz, 36 ms** | 9.3 |
+| Orin Nano 25 W + jetson_clocks, CPU | 8.2 Hz, 227 ms | 4.1 Hz, 351 ms | 23.0 Hz, 102 ms | 10.4 |
+| Orin Nano 25 W + jetson_clocks, GPU | **60 Hz, 7.9 ms** | **30 Hz, 21 ms** | **30 Hz, 33 ms** | 11.3 |
+| Ventuno Q, CPU | 10.1 Hz, 153 ms | 6.6 Hz, 272 ms | 17.9 Hz, 109 ms | 14.6 |
+| Ventuno Q, NPU | **60 Hz, 14.6 ms** | 11.8 Hz, 117 ms | **30 Hz, 23 ms** | 13.3 |
+
+The per-run tables, with per-stage timings, come from `python3 bench/summarize.py bench/results/<target>...`; the raw results are in `bench/results/`.
+
+**What the measurements say:**
+
+1. **CPU-only companions don't carry the racing pipeline.** Both 8-core ARM CPUs run the 0.87 GMAC detector in 31–36 ms, so racing tops out near 27 Hz alone and 8–10 Hz under load. With the detector on the accelerator, it holds 60 Hz on both boards, under load too: the NPU runs it in 2.8 ms, the GPU in 3.2 ms with pinned clocks (6.9 ms under DVFS).
+2. **An accelerator helps the pipelines that don't use it.** Moving the detector off the CPU frees cores for everything else: on the Ventuno, loaded scouting goes from 6.6 to 11.8 Hz and loaded inspection from 17.9 to 30 Hz, though neither touches the NPU.
+3. **Scouting needs a stereo engine, not a CPU.** CPU SGBM reaches 7 Hz on the Orin and 12 Hz on the Ventuno. VPI CUDA stereo brings the Orin to 30 Hz. The Ventuno's scouting number is a gap in the harness (no Qualcomm stereo backend), not a hardware limit.
+4. **DVFS is part of the target.** Under the default governor at 25 W, the Orin GPU sits at low clock at these loads: racing p99 is 13.5 ms against 7.0 ms pinned, and scouting misses 30 Hz alone (69 ms p99) but makes it under load, when the governor raises the clock. Pinning costs about 1.8 W at idle and 2 W under load. A target in `compute.json` must name its clock policy, as the target names here do.
+5. **The two boards' power numbers are not comparable yet.** The Jetson reads VDD_IN, the module input, which excludes the carrier board (5.3 W idle). The Ventuno's INA232 reads the 20 V board input, which includes the fan, the regulators and the peripherals (8.5 W idle). For the mission model, both need the same scope: the power the battery supplies to the whole compute stack, measured with an external logger at the pack.
+
+**Not yet in `compute.json`:** the masses aren't weighed (`bench/data/mass/TEMPLATE.json`), and the camera-to-flight-controller latency the harness doesn't see isn't measured (`--latency-extra-ms`). The pitfalls these runs found are recorded in [#8](https://github.com/branes-ai/drone-capability/issues/8).
 
 ### Phase 3: capability cards
 

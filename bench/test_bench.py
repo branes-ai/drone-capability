@@ -47,6 +47,12 @@ class Runner(unittest.TestCase):
         self.assertGreater(r["frames_processed"], 40)
         self.assertLess(r["latency_s"]["p50"], 0.01)
 
+    def test_zero_duration_is_warmup_only(self):
+        # run.py --soak uses this: warm-up only, nothing timed.
+        r = harness.run(self.pipe(0.001, 100.0), 0.0, warmup_s=0.05)
+        self.assertEqual(r["frames_processed"], 0)
+        self.assertIsNone(r["achieved_rate_hz"])
+
     def test_drops_frames_and_counts_queueing_when_slow(self):
         # 25 ms of work at 100 Hz: about 3 of every 4 frames are dropped, and the
         # latency includes the wait for the newest frame to be picked up.
@@ -90,6 +96,19 @@ class PowerBackends(unittest.TestCase):
             w, _ = be.read()
             self.assertGreater(w, 0)
             self.assertLess(w, 1.0)
+
+    def test_temperatures_skip_unreadable_zones(self):
+        orig = power._read
+
+        def flaky(path):
+            if path.endswith("temp"):
+                raise TypeError("can't concat NoneType to bytes")  # seen on Jetson
+            return orig(path)
+        power._read = flaky
+        try:
+            self.assertIsInstance(power.temperatures(), dict)
+        finally:
+            power._read = orig
 
     def test_file_backend_scale(self):
         with tempfile.TemporaryDirectory() as d:
@@ -136,6 +155,27 @@ class ToCompute(unittest.TestCase):
                 write(os.path.join(d, "%d.json" % i), json.dumps(r))
             got = to_compute.load_results([os.path.join(d, f) for f in ("0.json", "1.json")], "x")
             self.assertAlmostEqual(got["racing"]["latency_s"]["p99"], 0.02)
+
+
+class Summarize(unittest.TestCase):
+
+    def test_table_has_one_row_per_target_pipeline_and_load(self):
+        import summarize
+        with tempfile.TemporaryDirectory() as d:
+            base = {"schema": "drone-capability/bench-result/1", "target": "x", "rate_hz": 30.0,
+                    "achieved_rate_hz": 30.0, "drop_fraction": 0.0,
+                    "latency_s": {"p50": 0.01, "p99": 0.02},
+                    "stages": [{"name": "a", "p50": 0.004}, {"name": "b", "p50": 0.006}],
+                    "power": {"run": {"mean_w": 7.0}, "idle": {"mean_w": 5.0}}}
+            for i, (pipe, bg, t) in enumerate((("scout", [], "2026-11-10T00:00:00Z"),
+                                               ("scout", [], "2026-11-11T00:00:00Z"),
+                                               ("scout", ["racing"], "2026-11-10T00:00:00Z"))):
+                r = dict(base, pipeline=pipe, time_utc=t, load={"background": bg, "stress": 0})
+                write(os.path.join(d, "%d.json" % i), json.dumps(r))
+            lines = summarize.table(summarize.load([d])).splitlines()
+            self.assertEqual(len(lines), 4)  # header, rule, alone, with background
+            self.assertIn("b 6.0 ms", lines[2])
+            self.assertIn("7.0", lines[2])
 
 
 class ModelUsesPerPipelineValues(unittest.TestCase):

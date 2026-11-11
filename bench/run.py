@@ -3,6 +3,9 @@
     python3 bench/run.py --pipeline racing --target orin-nx-15w --power jetson
     python3 bench/run.py --pipeline scout --target desktop --duration 30 --background inspection
     python3 bench/run.py --pipeline inspection --target qcs6490 --power none --stress 2
+    python3 bench/run.py --pipeline racing --target orin-nano --power jetson --provider tensorrt
+    python3 bench/run.py --pipeline scout --target orin-nano --power jetson --stereo vpi-cuda
+    python3 bench/run.py --pipeline racing --target ventuno-q --provider qnn   # Qualcomm NPU
 
 The result is written to bench/results/<target>/<pipeline>-<UTC time>.json
 (or --out). bench/to_compute.py turns results plus a weighed-mass record into
@@ -30,13 +33,22 @@ import time
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
+# Single-threaded BLAS, set before numpy loads (spawned background processes
+# inherit it). The pipelines only multiply small matrices, and a threaded
+# OpenBLAS spins its idle threads, which steals the cores the detector runtime
+# needs: on the Jetson with the system numpy this doubled detector latency
+# (30 -> 75 ms). Override by setting the variables explicitly.
+BLAS_ENV = ("OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS", "MKL_NUM_THREADS")
+for _v in BLAS_ENV:
+    os.environ.setdefault(_v, "1")
+
 import harness  # noqa: E402
 import pipelines  # noqa: E402
 import power  # noqa: E402
 
 
-def _background(name, provider, stop):
-    p = pipelines.build(name, provider)
+def _background(name, provider, opts, stop):
+    p = pipelines.build(name, provider, **opts)
     k = 0
     period = 1.0 / p.rate_hz
     t_next = time.perf_counter()
@@ -63,7 +75,8 @@ def _cmd(args):
 
 def platform_info():
     info = {"hostname": socket.gethostname(), "machine": platform.machine(), "system": platform.platform(),
-            "python": platform.python_version(), "cpus": os.cpu_count()}
+            "python": platform.python_version(), "cpus": os.cpu_count(),
+            "thread_env": {v: os.environ.get(v) for v in BLAS_ENV}}
     for path in ("/proc/device-tree/model", "/etc/nv_tegra_release"):
         if os.path.exists(path):
             with open(path) as f:
@@ -100,6 +113,7 @@ def main(argv=None):
     ap.add_argument("--power-rate", type=float, default=50.0, help="power sampling rate [Hz]")
     ap.add_argument("--provider", default="auto", help="detector runtime: auto, opencv, or an onnxruntime provider")
     ap.add_argument("--threads", type=int, default=0, help="detector intra-op threads (0: runtime default)")
+    ap.add_argument("--stereo", default="sgbm", help="scouting stereo backend: sgbm (CPU) or vpi-cuda (Jetson GPU)")
     ap.add_argument("--rate", type=float, help="override the pipeline's mission rate [Hz]")
     ap.add_argument("--background", action="append", default=[], choices=pipelines.NAMES)
     ap.add_argument("--stress", type=int, default=0)
@@ -108,15 +122,19 @@ def main(argv=None):
     args = ap.parse_args(argv)
 
     be = power.backend(args.power)
-    pipe = pipelines.build(args.pipeline, args.provider, args.threads)
+    opts = {"stereo": args.stereo}
+    pipe = pipelines.build(args.pipeline, args.provider, args.threads, **opts)
     if args.rate:
         pipe.rate_hz = args.rate
 
     idle = power.measure_idle(be, args.idle, args.power_rate)
 
-    stop = mp.Event()
-    procs = [mp.Process(target=_background, args=(n, args.provider, stop)) for n in args.background]
-    procs += [mp.Process(target=_stress, args=(stop,)) for _ in range(args.stress)]
+    # spawn, not fork: a forked child cannot initialise CUDA once the parent has
+    # (TensorRT, VPI), and spawn behaves the same on every platform.
+    ctx = mp.get_context("spawn")
+    stop = ctx.Event()
+    procs = [ctx.Process(target=_background, args=(n, args.provider, opts, stop)) for n in args.background]
+    procs += [ctx.Process(target=_stress, args=(stop,)) for _ in range(args.stress)]
     for p in procs:
         p.daemon = True
         p.start()
@@ -145,6 +163,7 @@ def main(argv=None):
         "time_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "platform": platform_info(),
         "load": {"background": args.background, "stress": args.stress},
+        "accelerators": {"detector": args.provider, "stereo": args.stereo},
         "notes": args.notes,
         "latency_scope": "frame capture timestamp to end of the last stage; excludes exposure, readout, ISP, "
                          "and transport to the flight controller",

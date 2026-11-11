@@ -1,6 +1,7 @@
 """Scouting L1 stand-in: stereo depth -> mapping -> local planner, at 30 Hz.
 
-- depth:   semi-global block matching (OpenCV SGBM), 640 x 480, 64 disparities
+- depth:   semi-global matching, 640 x 480, 64 disparities: OpenCV SGBM on the
+           CPU (stereo='sgbm'), or NVIDIA VPI on the GPU (stereo='vpi-cuda')
 - points:  reproject every 4th pixel to 3D (f = 400 px, baseline 0.1 m)
 - mapping: rolling local occupancy grid, 0.2 m voxels, 20 x 20 x 5 m around
            the vehicle: decay, then insert the points
@@ -32,10 +33,26 @@ def primitives(n_yaw=7, n_climb=7, n_samples=20, length_m=8.0):
     return np.array(out)
 
 
-def build(provider="auto", threads=0):
+def stereo_matcher(kind):
+    """A function (left, right) -> disparity [px], float32."""
+    if kind == "sgbm":
+        sgbm = cv2.StereoSGBM_create(minDisparity=0, numDisparities=64, blockSize=5,
+                                     P1=8 * 25, P2=32 * 25, mode=cv2.STEREO_SGBM_MODE_SGBM)
+        return lambda l, r: sgbm.compute(l, r).astype(np.float32) / 16.0  # Q12.4
+    if kind == "vpi-cuda":
+        import vpi
+
+        def match(l, r):
+            with vpi.Backend.CUDA:
+                d = vpi.stereodisp(vpi.asimage(l), vpi.asimage(r), window=5, maxdisp=64)
+            return d.cpu().astype(np.float32) / 32.0  # Q10.5
+        return match
+    raise ValueError("unknown stereo backend %r (sgbm, vpi-cuda)" % kind)
+
+
+def build(provider="auto", threads=0, stereo="sgbm", **opts):
     cam = StereoCamera(480, 640)
-    sgbm = cv2.StereoSGBM_create(minDisparity=0, numDisparities=64, blockSize=5,
-                                 P1=8 * 25, P2=32 * 25, mode=cv2.STEREO_SGBM_MODE_SGBM)
+    match = stereo_matcher(stereo)
     grid = np.zeros(GRID, np.float32)
     prims = primitives()
     goal = np.array([20.0, 5.0, 0.0])
@@ -43,10 +60,10 @@ def build(provider="auto", threads=0):
     ys, xs = np.mgrid[0:480:4, 0:640:4]
 
     def depth(pair):
-        return sgbm.compute(pair[0], pair[1])
+        return match(pair[0], pair[1])
 
-    def points(disp16):
-        d = disp16[::4, ::4].astype(np.float32) / 16.0
+    def points(disp):
+        d = disp[::4, ::4]
         ok = d > 1.0
         z = F_PX * BASELINE_M / d[ok]
         x = (xs[ok] - 320) * z / F_PX
@@ -75,4 +92,4 @@ def build(provider="auto", threads=0):
 
     stages = [Stage("depth", depth), Stage("points", points), Stage("mapping", mapping), Stage("planner", planner)]
     return Pipeline("scout", RATE_HZ, cam, stages, __doc__.strip().splitlines()[0],
-                    {"stereo": [640, 480, 64], "grid_cells": list(GRID), "primitives": len(prims)})
+                    {"stereo": [640, 480, 64], "stereo_backend": stereo, "grid_cells": list(GRID), "primitives": len(prims)})

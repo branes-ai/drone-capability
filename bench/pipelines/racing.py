@@ -61,7 +61,7 @@ def hover_model(dt):
     return a, b
 
 
-def build(provider="auto", threads=0):
+def build(provider="auto", threads=0, **opts):
     cam = MovingCamera(480, 640, color=True)
     det = Detector(320, provider, threads)
     dt = 1.0 / RATE_HZ
