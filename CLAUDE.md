@@ -22,6 +22,7 @@ Benchmarks that map drone algorithms and flight-computer hardware to mission cap
   - `python3 bench/make_detector.py`: generates the stand-in detector in `bench/assets/` (needs torch; the ONNX files are gitignored, copy them to targets)
   - `python3 bench/run.py --pipeline racing --target <name> --power jetson`: one measurement run
   - `python3 bench/to_compute.py --target <name> --mass ... results...`: a `compute.json` entry from results and weighed mass
+  - `python3 bench/summarize.py bench/results/<target>...`: the markdown results table for the plan
   - `python3 -m unittest discover -s bench`: harness tests
 
   Bench code runs on the targets, so keep it Python 3.6 compatible (no dataclasses, walrus, or `perf_counter_ns`) and limited to numpy and OpenCV, with onnxruntime optional.

@@ -127,7 +127,9 @@ def temperatures():
             name = _read(os.path.join(z, "type"))
             out[name if name not in out else "%s.%s" % (name, os.path.basename(z))] = \
                 float(_read(os.path.join(z, "temp"))) / 1000.0
-        except (IOError, OSError, ValueError):
+        except Exception:
+            # Best effort: some zones (e.g. on Jetson) fail to read mid-call with
+            # driver-specific errors; a missing temperature must not end a run.
             pass
     return out
 

@@ -100,7 +100,7 @@ def run(pipeline, duration_s, warmup_s=2.0, clock=time.perf_counter, sleep=time.
         "frames_processed": processed,
         "frames_dropped": dropped,
         "drop_fraction": dropped / frames if frames else None,
-        "achieved_rate_hz": processed / duration_s,
+        "achieved_rate_hz": processed / duration_s if duration_s > 0 else None,
         "latency_s": summarize(e2e),
         "compute_s": summarize([sum(ds) for ds in zip(*stages)]) if processed else {"n": 0},
         "stages": [dict(name=st.name, **summarize(ds)) for st, ds in zip(pipeline.stages, stages)],

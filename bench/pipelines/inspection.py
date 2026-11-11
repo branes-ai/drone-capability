@@ -19,7 +19,7 @@ RATE_HZ = 30.0
 K_CAM = np.array([[400, 0, 320], [0, 400, 240], [0, 0, 1]], np.float64)
 
 
-def build(provider="auto", threads=0):
+def build(provider="auto", threads=0, **opts):
     cam = MovingCamera(480, 640)
     rng = np.random.RandomState(1)
     # A wall 3 m ahead, slightly tilted, with sensor noise.
